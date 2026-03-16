@@ -1,13 +1,13 @@
-#############################
+##############################
 # M365 Package Manager
 # COMPLETE FIX – PART 1/5: INITIALIZATION & CLASSES
 # PowerShell 5.1 Compatible
 ##############################
 
-# --- Check whether we are running as administrator ---
+# --- Check whether the script is running as Administrator ---
 if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
     try {
-# Use $PSCommandPath to get the current script path (works in PS 5.1)
+        # Use $PSCommandPath to get the current script path (works in PS 5.1).
         Start-Process pwsh.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs
     } catch {
         [System.Windows.Forms.MessageBox]::Show("Dit script heeft Administrator rechten nodig om te draaien.", "Rechten fout", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error)
@@ -15,11 +15,12 @@ if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdent
     exit
 }
 
-# --- Add GUI assemblies ---
+
+# --- Add required GUI assemblies ---
 Add-Type -AssemblyName PresentationFramework,PresentationCore,WindowsBase
 Add-Type -AssemblyName System.Windows.Forms
 
-# --- Define AppItem class ---
+# --- Define the AppItem class ---
 class AppItem {
     [string]$DisplayName
     [string]$Version
@@ -40,7 +41,7 @@ $appList = [System.Collections.ObjectModel.ObservableCollection[AppItem]]::new()
 # WPF HELPER FUNCTIONS
 # ==========================================
 
-# NOTE: De $dgApps, $lblStatus, etc. variabelen bestaan hier nog niet,
+# NOTE: The variables $dgApps, $lblStatus, etc. do not exist yet here,
 # but functions must be defined before they are called.
 
 # WPF DataGrid refresh function
@@ -48,7 +49,7 @@ function Update-DataGridWPF {
     param(
         [System.Collections.ArrayList]$DataList
     )
-# Use the WPF DataGrid variable ($dgApps) and the Dispatcher
+    # Use the WPF DataGrid variable ($dgApps) and the Dispatcher
     # to access the UI thread.
     if ($null -ne $dgApps -and $null -ne $dgApps.Dispatcher) {
         $dgApps.Dispatcher.Invoke([action]{
@@ -70,7 +71,7 @@ function Stop-ProcessByName {
             Write-Host "Proces $procName gestopt."
         }
     } catch {
-        # Use string concatenation for error message formatting
+        # Use string concatenation to format an error message
         Write-Host ("Fout bij stoppen van proces " + $procName + ": " + $_.Exception.Message)
     }
 }
@@ -81,16 +82,16 @@ function Write-WPFStatus {
         [int]$ProgressValue = 0
     )
     
-    # Haalt de globale $window variabele op die de WPF elementen bevat
+    # Gets the global $window variable that contains the WPF elements
     $window = Get-Variable -Name 'window' -Scope Global -ValueOnly -ErrorAction SilentlyContinue
     
-    # If no WPF window is available, use Write-Host as a fallback
+    # If no WPF window is available, use Write-Host as fallback
     if (-not $window) {
         Write-Host "Geen WPF-venster beschikbaar om de status bij te werken. Huidige status: $StatusText"
         return
     }
 
-    # FIX: Filter unwanted MSI output or other strings (such as '[INT]75')
+    # FIX: Filter unwanted MSI output or other strings (for example '[INT]75')
     $FilteredText = $StatusText -replace "\[INT\]\d+" -replace "Download: \d+% voltooid\.\.\." 
     $FilteredText = $FilteredText.Trim()
 
@@ -99,9 +100,9 @@ function Write-WPFStatus {
         return # Sla de update over als de tekst leeg is na filteren
     }
     
-    # If a WPF window exists, update the text and progress
+    # If a WPF window exists, update status text and progress
     $window.Dispatcher.Invoke([action]{
-        # Find the WPF elements (must be defined in your GUI code)
+        # Find WPF elements (must be defined in your GUI code)
         $txtStatus = $window.FindName("txtStatus")
         $prgStatus = $window.FindName("prgStatus")
 
@@ -115,7 +116,7 @@ function Write-WPFStatus {
     })
 }
 
-# Function to show status in the window (replaces incorrect Write-Host usage)
+# Function to display status in the WPF window (replaces erroneous Write-Host usage).
 function Write-ConsoleStatus {
     param(
         [string]$StatusText,
@@ -138,7 +139,7 @@ function Start-AsyncJob {
         [System.Windows.Window]$window
     )
 
-    # Start background task
+    # Start the background task
     $job = Start-Job -Name $JobName -ScriptBlock {
         param($sb, $argsList, $window)
 
@@ -146,15 +147,15 @@ function Start-AsyncJob {
         function Write-WPFStatus {
             param([string]$StatusText, [int]$ProgressValue = -1)
 
-            # Update the UI through Dispatcher to safely send progress to the GUI
+            # Update the UI via Dispatcher to safely send progress to the GUI
             $window.Dispatcher.Invoke([action]{
-                # If there is a Label for the status
+                # Update the status label when available
                 if ($window.FindName("lblStatus")) {
                     $lblStatus = $window.FindName("lblStatus")
                     $lblStatus.Text = $StatusText
                 }
 
-                # If there is a ProgressBar for progress
+                # Update the progress bar when available
                 if ($window.FindName("progressBar")) {
                     $progressBar = $window.FindName("progressBar")
                     $progressBar.Value = $ProgressValue
@@ -163,10 +164,10 @@ function Start-AsyncJob {
         }
 
         try {
-            # Execute the task and send progress to the GUI
+            # Execute the task and send progress updates to the GUI
             & $sb @argsList
         } catch {
-            # Send an error message to the UI thread
+            # Send error message to the UI thread
             $window.Dispatcher.Invoke([action]{
                 $window.Title = "Fout bij het uitvoeren van de taak: $($_.Exception.Message)"
             })
@@ -190,7 +191,7 @@ function Enable-AllButtons {
             }
         }
 
-        # Remove button depends on actual WPF selection
+        # Remove button depends on the current WPF selection
         if ($btnRemove -and $lstResults) {
             $btnRemove.Dispatcher.Invoke([action]{
                 $btnRemove.IsEnabled = ($lstResults.SelectedItems.Count -gt 0)
@@ -224,32 +225,31 @@ function Find-VisualChild {
 
 # --- Helper status update function ---
 function Update-Status($text) {
+	
     $window.Dispatcher.Invoke([action]{
         ($window.FindName("lblStatus")).Text = $text
     })
 }
 
-# --- Function: Safe remove path with retry ---
+# --- Function: Remove-Path with retry ---
 function Remove-PathSafe {
-    param(
-        [string]$path,
-        [string]$itemName
-    )
-
-    try {
-        # Remove files
-        if (Test-Path $path) {
-            Remove-Item -LiteralPath $path -Recurse -Force -ErrorAction Stop
-            Write-Host "Verwijderde item: $itemName ($path)"
-            return $true
-        } else {
-            Write-Host "Pad niet gevonden: $path"
+    param([string]$Path, [string]$DisplayName)
+    if (Test-Path $Path) {
+        try {
+            Remove-Item -Path $Path -Recurse -Force -ErrorAction Stop
+            $retry = 0
+            while (Test-Path $Path -and $retry -lt 5) {
+                Start-Sleep -Milliseconds 500
+                Remove-Item -Path $Path -Recurse -Force -ErrorAction SilentlyContinue
+                $retry++
+            }
+            return !(Test-Path $Path)
+        } catch {
+            Write-WPFStatus "FOUT: Kon $DisplayName ($Path) niet verwijderen. ($($_.Exception.Message))"
             return $false
         }
-    } catch {
-        # Build error message with string concatenation
-        Write-Host ("Fout bij verwijderen van item " + $itemName + ": " + $_.Exception.Message)
-        return $false
+    } else {
+        return $true
     }
 }
 
@@ -257,7 +257,7 @@ function Remove-PathSafe {
 # CORE LOGIC FUNCTIONS (unchanged from Part 1)
 # ==========================================
 
-function Get-M365Item {
+function Find-M365Item {
     # Cache folders to scan for M365 (excluding Zivver paths)
     $cachePaths = @(
         "AppData\Local\Microsoft\Teams",
@@ -273,12 +273,13 @@ function Get-M365Item {
         foreach ($path in $cachePaths) {
             $fullPath = Join-Path $user.FullName $path
             if (Test-Path $fullPath) {
-                $item = [PSCustomObject]@{
-                    User       = $user.Name
-                    Type       = "Cache"
-                    Path       = $fullPath
-                    DisplayName = "M365 Cache: $path"
-                }
+                $item = [AppItem]::new()
+                $item.DisplayName = "M365 Cache: $path"
+                $item.Version = "N/A"
+                $item.Source = $fullPath
+                $item.UninstallString = "Handmatig verwijderen"
+                $item.Type = "Cache"
+                $item.IsSelected = $false
                 $appList.Add($item)
             }
         }
@@ -287,7 +288,7 @@ function Get-M365Item {
     Write-Host "`n--- M365 scan voltooid ---`n"
 }
 
-function Get-TeamsAddin {
+function Find-TeamsAddin {
     param([string[]]$Users)
 
     $results = @()
@@ -318,9 +319,9 @@ function Get-TeamsAddin {
     return $results
 }
 
-function Get-ZivverItem {
+function Find-ZivverItem {
     $zivverPaths = @(
-        # Locations in AppData (left as-is)
+        # AppData locations (left as-is)
         [System.IO.Path]::Combine($env:APPDATA, 'Zivver'),
         [System.IO.Path]::Combine($env:LOCALAPPDATA, 'Zivver'),
         [System.IO.Path]::Combine($env:ProgramData, 'Zivver'),
@@ -337,7 +338,7 @@ function Get-ZivverItem {
     foreach ($path in $zivverPaths) {
         Write-Host "Controleren Zivver pad: $path"
         
-        # Extra debugging: check the path for errors
+        # Extra debugging: verify path for access errors
         if (Test-Path $path) {
             Write-Host "Zivver item gevonden: $path"
             $item = [AppItem]::new()
@@ -356,7 +357,7 @@ function Get-ZivverItem {
             $appList.Add($item)
         } else {
             Write-Host "Zivver item NIET gevonden op pad: $path"
-            # Additional error check: show when path is not found
+            # Additional error check: report when the path is not found
             Write-Host "Fout bij toegang tot pad: $path"
             try {
                 $test = Test-Path -Path $path
@@ -404,7 +405,7 @@ function Stop-TeamsOutlook {
 function Remove-FilesInFolder($folder, $processName = $null) {
     if (Test-Path $folder) {
 
-        # --- Disable PowerShell confirm for the whole function ---
+        # --- Disable PowerShell confirmation for the whole function scope ---
         $oldConfirm = $ConfirmPreference
         $ConfirmPreference = 'None'
 
@@ -424,7 +425,7 @@ function Remove-FilesInFolder($folder, $processName = $null) {
             # Remove the root folder itself
             try { Remove-Item -Path $folder -Recurse -Force -Confirm:$false -ErrorAction Stop } catch {}
         } finally {
-            # --- Restore the original confirm value ---
+            # --- Restore confirmation preference to the original value ---
             $ConfirmPreference = $oldConfirm
         }
     }
@@ -434,7 +435,7 @@ function Remove-M365Item($item) {
     try {
         if ($item.Type -eq "M365") {
 
-            # --- Special case: Teams Machine-Wide Installer ---
+            # --- Special case: Teams Machine-Wide installer ---
             if ($item.DisplayName -match "Teams Machine-wide Installer") {
                 $msi = Get-WmiObject Win32_Product | Where-Object { $_.Name -eq "Teams Machine-wide Installer" }
                 if ($msi) {
@@ -461,7 +462,7 @@ function Remove-M365Item($item) {
                 return
             }
 
-            # --- Remove Teams Meeting Add-in ---
+            # --- Remove Teams Meeting add-in ---
             if ($item.DisplayName -match "Teams Meeting Add-in") {
                 try {
                     $uninstallString = $item.UninstallString
@@ -501,7 +502,7 @@ function Remove-M365Item($item) {
                     Write-Host "Fout bij verwijderen van Teams Meeting Add-in registry: $($_.Exception.Message)"
                 }
 
-                # --- Disable Teams Meeting Add-in in Outlook ---
+                # --- Disable Teams Meeting add-in in Outlook ---
                 try {
                     $outlook = New-Object -ComObject Outlook.Application
                     $addin = $outlook.COMAddIns | Where-Object { $_.Description -match "Teams Meeting Add-in" }
@@ -515,7 +516,7 @@ function Remove-M365Item($item) {
     }
 
     # --- Scan again after removal ---
-    Get-M365Item
+    Find-M365Item
 
     # --- Clean Teams cache after removal ---
     $users = Get-ChildItem "C:\Users" -Directory | Where-Object { $_.Name -notin @("Public","Default","Default User","All Users") }
@@ -542,7 +543,7 @@ function Remove-M365Item($item) {
                         try { $_.Attributes = 'Normal' } catch {}
                     }
 
-                    # --- Remove the full profile folder ---
+                    # --- Remove the entire profile folder ---
                     try {
                         Remove-Item $profileFolder -Recurse -Force -ErrorAction SilentlyContinue
                         Write-Host "Cache verwijderd: $profileFolder"
@@ -648,7 +649,7 @@ function Remove-AppItems {
                         $success = $true
                     }
 
-                    # For TeamsAddin, keep a consistent display name
+                    # Keep consistent display name for Teams add-in items
                     $item.DisplayName = "Teams Meeting Add-in"
                 }
 
@@ -699,7 +700,7 @@ function Remove-AppItems {
 function Clear-Folder($folder) {
     if (-not (Test-Path $folder)) { return }
 
-    # Stop processes that use the folder
+    # Stop processes that may hold the folder
     $processes = @("Teams", "msedge", "WebViewHost")
     foreach ($p in $processes) {
         Get-Process -Name $p -ErrorAction SilentlyContinue | ForEach-Object {
@@ -709,7 +710,7 @@ function Clear-Folder($folder) {
 
     Start-Sleep -Seconds 2 # even wachten tot processen echt gestopt zijn
 
-    # Remove all contents from the folder
+    # Remove all content from the folder
     Get-ChildItem -Path $folder -Recurse -Force -ErrorAction SilentlyContinue | ForEach-Object {
         try { Remove-Item $_.FullName -Force -Recurse -ErrorAction SilentlyContinue } catch {}
     }
@@ -717,7 +718,7 @@ function Clear-Folder($folder) {
     # Remove the folder itself
     try { Remove-Item -Path $folder -Recurse -Force -ErrorAction SilentlyContinue } catch {}
 
-    # Check whether the folder still exists and warn
+    # Check whether the folder still exists and report this
     if (Test-Path $folder) {
         Write-Host "Map $folder bestaat nog. Waarschijnlijk door Teams/WebView opnieuw aangemaakt."
     } else {
@@ -725,7 +726,7 @@ function Clear-Folder($folder) {
     }
 }
 
-function Restore-TeamsAddin {
+function Invoke-TeamsAddinReinstall {
     Write-WPFStatus "Start herinstallatie Teams Add-in...", 0
 
     # 1. Stop all relevant M365 processes (Teams, Outlook, etc.)
@@ -735,7 +736,7 @@ function Restore-TeamsAddin {
         Get-Process -Name $process -ErrorAction SilentlyContinue | Stop-Process -Force
     }
 
-    # 2. Remove Teams Add-in and cache
+    # 2. Remove Teams add-in and cache
     Write-WPFStatus "Teams Add-in en cache verwijderen...", 15
     $users = Get-ChildItem "C:\Users" -Directory | Where-Object { $_.Name -notmatch "Public|Default|Default User|All Users" }
     
@@ -753,7 +754,7 @@ function Restore-TeamsAddin {
 
     Write-WPFStatus "Teams Add-in en cache verwijderd.", 30
 
-    # 3. Reinstall Teams Add-in via ClickToRun
+    # 3. Reinstall the Teams add-in via ClickToRun
     Write-WPFStatus "Teams Add-in opnieuw installeren...", 40
     $clickToRunPaths = @(
         "$env:ProgramFiles\Common Files\Microsoft Shared\ClickToRun\OfficeClickToRun.exe",
@@ -801,7 +802,7 @@ function Restore-TeamsAddin {
     )
 }
 
-function Restore-Zivver {
+function Invoke-ZivverReinstall {
     Write-WPFStatus "Start herinstallatie Zivver Plugin...", 0
 
     # URL to download the Zivver installer
@@ -809,7 +810,7 @@ function Restore-Zivver {
     $tempDir = Join-Path $env:TEMP "ZivverInstaller"
     $zivverInstallerPath = Join-Path $tempDir "Zivver.OfficePlugin.Installer.msi"
     
-# Build the path to AppData\Local\Zivver B.V. dynamically.
+    # Build the AppData\Local\Zivver B.V. path dynamically
     $appDataInstallDir = Join-Path $env:LOCALAPPDATA "Zivver B.V."
 
     # Stop all M365 processes (Teams, Outlook, etc.)
@@ -820,7 +821,7 @@ function Restore-Zivver {
     }
 
     # -----------------------------------------------------------
-    # 2. Find and silently remove current Zivver
+    # 2. Find and silently remove current Zivver installation
     # -----------------------------------------------------------
     Write-WPFStatus "Start detectie en stille verwijdering van Zivver B.V. installatie...", 15
     $zivverEntry = $null
@@ -857,12 +858,12 @@ function Restore-Zivver {
     }
 
     # -----------------------------------------------------------
-    # 3. Download Zivver MSI Installer
+    # 3. Download Zivver MSI installer
     # -----------------------------------------------------------
     Write-WPFStatus "Start downloaden van Zivver MSI Installer...", 40
 
     try {
-        # Create temp folder if it does not exist
+        # Check if the temp folder exists and create it if needed
         if (-not (Test-Path $tempDir)) { 
             New-Item -Path $tempDir -ItemType Directory -Force | Out-Null 
         }
@@ -886,7 +887,7 @@ function Restore-Zivver {
     }
 
     # -----------------------------------------------------------
-    # 4. Start de installatie naar AppData\Local
+    # 4. Start installation under AppData\Local
     # -----------------------------------------------------------
     Write-WPFStatus "Start directe stille installatie naar AppData\Local...", 75
 
@@ -896,7 +897,7 @@ function Restore-Zivver {
         New-Item -Path $appDataInstallDir -ItemType Directory -Force | Out-Null
     }
 
-    # Specificeer installatiepad in AppData\Local
+    # Specify the install path in AppData\Local
     $arguments = @(
         "/i", "`"$zivverInstallerPath`"",
         "MSIINSTALLPERUSER=1",          # Installeer per gebruiker
@@ -907,7 +908,7 @@ function Restore-Zivver {
         "INSTALLDIR=`"$appDataInstallDir`""  # Specificeer het installatiedirectory in AppData\Local\Zivver B.V.
     )
 
-    # Start installation via msiexec
+    # Start the installation using msiexec
     Start-Process -FilePath "msiexec.exe" -ArgumentList $arguments -Wait -WindowStyle Hidden -ErrorAction Stop
 
     Write-WPFStatus "Installatie voltooid.", 90
@@ -926,7 +927,7 @@ function Update-DataGridWPF {
         [System.Collections.ObjectModel.ObservableCollection[AppItem]]$DataList
     )
     
-# Use the WPF DataGrid variable ($dgApps) and the Dispatcher
+    # Use the WPF DataGrid variable ($dgApps) and the Dispatcher
     $dgApps.Dispatcher.Invoke([action]{
         $dgApps.ItemsSource = $null
         $dgApps.ItemsSource = $DataList
@@ -937,12 +938,12 @@ function Update-DataGridWPF {
 ##############################
 # PART 3/5: XAML DEFINITION
 ##############################
-
-# XAML GUI (DEFINITIVE LAYOUT)
+      
+# XAML GUI (DEFINITIEVE LAYOUT)
 $XAML = @"
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="deRolfgroep Package Manager" Height="750" Width="1000" WindowStartupLocation="CenterScreen"
+        Title="M365 Package Manager" Height="750" Width="1000" WindowStartupLocation="CenterScreen"
         Background="#1E1E1E" WindowStyle="SingleBorderWindow">
     <Grid Margin="20">
         <Grid.RowDefinitions>
@@ -957,9 +958,9 @@ $XAML = @"
                    FontSize="24" FontWeight="Bold" Foreground="White" Margin="0,0,0,20"/>
 
         <StackPanel Orientation="Horizontal" Grid.Row="1" Margin="0,0,0,10">
-            <Button Name="btnScanM365" Content="Scan M365/Teams" Width="180" Margin="5" Background="#007AFF" Foreground="White"/>
-            <Button Name="btnScanZivver" Content="Scan Zivver" Width="150" Margin="5" Background="#FF9500" Foreground="White"/>
-            <Button Name="btnRemove" Content="Verwijder Geselecteerde" Width="200" Margin="5" Background="#FF3B30" Foreground="White" IsEnabled="False"/>
+            <Button Name="btnScanM365" Content="🔍 Scan M365/Teams" Width="180" Margin="5" Background="#007AFF" Foreground="White"/>
+            <Button Name="btnScanZivver" Content="🔍 Scan Zivver" Width="150" Margin="5" Background="#FF9500" Foreground="White"/>
+            <Button Name="btnRemove" Content="❌ Verwijder Geselecteerde" Width="200" Margin="5" Background="#FF3B30" Foreground="White" IsEnabled="False"/>
         </StackPanel>
 
         <DataGrid Name="dgApps" Grid.Row="2" AutoGenerateColumns="False" CanUserAddRows="False"
@@ -1016,13 +1017,13 @@ $XAML = @"
 
         <StackPanel Orientation="Vertical" Grid.Row="5">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,5,0,5">
-                <Button Name="btnRemoveAll" Content="Verwijder M365 Compleet" Width="250" Margin="5,0" Background="#FF3B30" Foreground="White"/>
+                <Button Name="btnRemoveAll" Content="🧹 Verwijder M365 Compleet" Width="250" Margin="5,0" Background="#FF3B30" Foreground="White"/>
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                <Button Name="btnReinstall" Content="Herinstalleer M365" Width="200" Margin="5" Background="#34C759" Foreground="White"/>
-                <Button Name="btnReinstallZivver" Content="Herinstalleer Zivver Plugin" Width="200" Margin="5" Background="#34C759" Foreground="White"/>
-                <Button Name="btnReinstallTeamsAddin" Content="Herinstalleer Teams Add-in" Width="200" Margin="5" Background="#34C759" Foreground="White"/>
+                <Button Name="btnReinstall" Content="🔄 Herinstalleer M365" Width="200" Margin="5" Background="#34C759" Foreground="White"/>
+                <Button Name="btnReinstallZivver" Content="🔄 Herinstalleer Zivver Plugin" Width="200" Margin="5" Background="#34C759" Foreground="White"/>
+                <Button Name="btnReinstallTeamsAddin" Content="🔄 Herinstalleer Teams Add-in" Width="200" Margin="5" Background="#34C759" Foreground="White"/>
             </StackPanel>
             
         </StackPanel>
@@ -1036,11 +1037,11 @@ $XAML = @"
 # PART 4/5: XAML LOAD, WIRING & EVENT HANDLERS
 ##############################
 
-# --- 1. Load XAML and find elements (CRITICAL) ---
+# --- 1. Load XAML and resolve elements (CRITICAL) ---
 $reader = New-Object System.Xml.XmlNodeReader ([xml]$XAML)
 $window = [Windows.Markup.XamlReader]::Load($reader)
 
-# --- 2. Find GUI elements via FindName ---
+# --- 2. Resolve GUI elements via FindName ---
 $dgApps = $window.FindName("dgApps")
 $btnRemove = $window.FindName("btnRemove")
 $btnReinstall = $window.FindName("btnReinstall")
@@ -1050,10 +1051,10 @@ $btnScanZivver = $window.FindName("btnScanZivver")
 $btnReinstallZivver = $window.FindName("btnReinstallZivver")
 $btnReinstallTeamsAddin = $window.FindName("btnReinstallTeamsAddin")
 $lblStatus = $window.FindName("lblStatus") # <== Status TextBlock
-$progressBar = $window.FindName("progressBar") # <== Progress Bar
+$progressBar = $window.FindName("progressBar") # <== Progress Bar toegevoegd aan XAML
 $chkSelectAll = $window.FindName("chkSelectAll") # <== Header CheckBox
 
-# --- 3. DATA BINDING (Prevents ArgumentNullException at ShowDialog) ---
+# --- 3. Data binding (prevents ArgumentNullException at ShowDialog) ---
 $dgApps.ItemsSource = $appList
 
 # ==========================================
@@ -1062,28 +1063,28 @@ $dgApps.ItemsSource = $appList
 
 # --- Header checkbox functionality ---
 $window.Dispatcher.Invoke([action]{
-    # Find the header checkbox in the DataGrid
+    # Zoek de header checkbox in de DataGrid
     $dgApps.Dispatcher.InvokeAsync({
         $headerCheckBox = Find-VisualChild -parent $dgApps -childType ([type]"System.Windows.Controls.CheckBox")
         if ($headerCheckBox) {
-            # Select all
+            # Select all items
             $headerCheckBox.Add_Checked({
-                # Update selection for all items in the list
+                # Update the selection state for all items in the list
                 foreach ($item in $appList) {
                     $item.IsSelected = $true
                 }
-                # Reload DataGrid to reflect changes
+                # Reload the DataGrid to reflect selection changes
                 $dgApps.ItemsSource = $null  # Reset de ItemsSource
                 $dgApps.ItemsSource = $appList
             })
 
-            # Deselect all
+            # Deselect all items
             $headerCheckBox.Add_Unchecked({
-                # Update selection for all items in the list
+                # Update the selection state for all items in the list
                 foreach ($item in $appList) {
                     $item.IsSelected = $false
                 }
-                # Reload DataGrid to reflect changes
+                # Reload the DataGrid to reflect selection changes
                 $dgApps.ItemsSource = $null  # Reset de ItemsSource
                 $dgApps.ItemsSource = $appList
             })
@@ -1098,7 +1099,7 @@ if ($chkSelectAll) {
         foreach ($item in $appList) { 
             $item.IsSelected = $true 
         }
-        # Reload DataGrid to reflect changes
+        # Reload the DataGrid to reflect selection changes
         $dgApps.ItemsSource = $null  # Reset de ItemsSource
         $dgApps.ItemsSource = $appList
     })
@@ -1108,7 +1109,7 @@ if ($chkSelectAll) {
         foreach ($item in $appList) { 
             $item.IsSelected = $false 
         }
-        # Reload DataGrid to reflect changes
+        # Reload the DataGrid to reflect selection changes
         $dgApps.ItemsSource = $null  # Reset de ItemsSource
         $dgApps.ItemsSource = $appList
     })
@@ -1123,7 +1124,7 @@ $window.Add_Loaded({
             foreach ($item in $appList) {
                 $item.IsSelected = $true
             }
-            # Reload DataGrid to reflect changes
+            # Reload the DataGrid to reflect selection changes
             $dgApps.ItemsSource = $null  # Reset de ItemsSource
             $dgApps.ItemsSource = $appList
         })
@@ -1133,7 +1134,7 @@ $window.Add_Loaded({
             foreach ($item in $appList) {
                 $item.IsSelected = $false
             }
-            # Reload DataGrid to reflect changes
+            # Reload the DataGrid to reflect selection changes
             $dgApps.ItemsSource = $null  # Reset de ItemsSource
             $dgApps.ItemsSource = $appList
         })
@@ -1143,7 +1144,7 @@ $window.Add_Loaded({
 # --- Init paths ---
 $localAppDataRoot = [string]$env:LocalAppData
 
-# --- Button: Remove all M365/Teams items ---
+# --- Button: Remove All M365/Teams items ---
 $btnRemoveAll.Add_Click({
     Start-AsyncJob -JobName "Verwijdering M365 Compleet" -ScriptBlock {
         param($appList)
@@ -1203,7 +1204,7 @@ $btnRemoveAll.Add_Click({
             }
             if ($success) { 
                 $itemsRemovedSuccessfully++
-                # Remove item from the list and update DataGrid
+                # Remove the item from the list and refresh the DataGrid
                 $appList.Remove($item)
                 $window.Dispatcher.Invoke([action]{ Update-DataGridWPF -DataList $appList })
             } else { 
@@ -1211,7 +1212,7 @@ $btnRemoveAll.Add_Click({
             }
         }
 
-        # Remove standard Teams cache folders as well
+        # Also remove standard Teams cache folders
         foreach ($path in $teamsPaths) {
             if (Remove-PathSafe $path $path) { $itemsRemovedSuccessfully++ }
         }
@@ -1221,7 +1222,7 @@ $btnRemoveAll.Add_Click({
         $appList.AddRange($itemsToKeep)
         Write-WPFStatus "Complete verwijdering voltooid. $itemsRemovedSuccessfully items succesvol verwijderd."
 
-        # Ensure all buttons are re-enabled
+        # Ensure all buttons are reactivated
         $window.Dispatcher.Invoke([action]{ Enable-AllButtons })
         $window.Dispatcher.Invoke([action]{ Update-DataGridWPF -DataList $appList })
     } -ArgumentList $appList
@@ -1229,7 +1230,7 @@ $btnRemoveAll.Add_Click({
 
 # --- Button: Remove selected items ---
 $btnRemove.Add_Click({
-    # Get selected items in the list
+    # Get selected items from the list
     $selectedItems = $appList | Where-Object { $_.IsSelected }
 
     if ($selectedItems.Count -eq 0) {
@@ -1248,7 +1249,7 @@ $btnRemove.Add_Click({
             if ($item.DisplayName -match "Teams") {
                 Write-WPFStatus "Stoppen van Teams-gerelateerde processen..."
 
-                # Get processes named ms-teams and stop them
+                # Find processes named ms-teams and stop them
                 $teamsProcesses = Get-Process | Where-Object { $_.Name -eq "ms-teams" }
 
                 foreach ($process in $teamsProcesses) {
@@ -1256,14 +1257,14 @@ $btnRemove.Add_Click({
                     Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
                 }
 
-                # Stop Teams Updater if applicable
+                # Stop Teams Updater if it is running
                 $teamsUpdater = Get-Process | Where-Object { $_.Name -eq "TeamsUpdater" }
                 if ($teamsUpdater) {
                     Write-WPFStatus "Stoppen van Teams Updater"
                     Stop-Process -Name "TeamsUpdater" -Force -ErrorAction SilentlyContinue
                 }
 
-                # Force-stop Teams via Taskkill tool
+                # Force-stop Teams via Taskkill
                 Write-WPFStatus "Forceer afsluiten van Teams via Taskkill"
                 try {
                     Start-Process "taskkill" -ArgumentList "/F /IM ms-teams.exe" -NoNewWindow -ErrorAction SilentlyContinue
@@ -1280,7 +1281,7 @@ $btnRemove.Add_Click({
                     Remove-Item -Path $item.Source -Recurse -Force -ErrorAction Stop
                     Write-WPFStatus "Bestanden succesvol verwijderd: $($item.Source)"
                     
-                    # Check if folder is empty and remove it if possible
+                    # Check whether the parent folder is empty and remove it if possible
                     $parentDir = Split-Path $item.Source
                     if (Test-Path $parentDir -and (Get-ChildItem $parentDir).Count -eq 0) {
                         Remove-Item -Path $parentDir -Force -ErrorAction SilentlyContinue
@@ -1294,7 +1295,7 @@ $btnRemove.Add_Click({
                 Write-WPFStatus "Fout: Pad bestaat niet voor $($item.DisplayName)"
             }
 
-            # After successful removal, remove item from the list
+            # After successful removal, remove the item from the list
             $appList.Remove($item)
             Write-WPFStatus "Item succesvol verwijderd: $($item.DisplayName)"
         }
@@ -1303,7 +1304,7 @@ $btnRemove.Add_Click({
         }
     }
 
-    # Update the UI and show completion message
+    # Update UI and show completion message after removal is done
     Write-WPFStatus "Verwijderen voltooid. Alle geselecteerde items zijn succesvol verwijderd."
     Update-DataGridWPF -DataList $appList
 })
@@ -1312,6 +1313,7 @@ $btnRemove.Add_Click({
 $btnScanM365.Add_Click({
     $appList.Clear()
     Write-WPFStatus "Start scan: M365/Teams componenten..."
+    Find-M365Item
 
     # --- 1. Per-machine registry scan ---
     $regPaths = @(
@@ -1342,7 +1344,7 @@ $btnScanM365.Add_Click({
         $sid = $null
         try { $sid = (New-Object System.Security.Principal.NTAccount($user.Name)).Translate([System.Security.Principal.SecurityIdentifier]).Value 2>$null } catch {}
 
-        # Teams Add-in registry
+        # Teams add-in registry
         if ($sid) {
             $regKey = "HKU\$sid\Software\Microsoft\Office\Outlook\Addins\TeamsAddin.FastConnect"
             if ((Test-Path $regKey -ErrorAction SilentlyContinue)) {
@@ -1357,14 +1359,14 @@ $btnScanM365.Add_Click({
             }
         }
 
-        # Teams Add-in AppData
+        # Teams add-in AppData
         $localAppDataRoot = Join-Path $user.FullName "AppData\Local"
         $teamsAddinPaths = @()
         $teamsAddinPaths += Join-Path $localAppDataRoot "Microsoft\TeamsMeetingAddin"
         $teamsAddinPaths += Join-Path $localAppDataRoot "Microsoft\TeamsMeetingAddinMsis"
 
         foreach ($path in $teamsAddinPaths) {
-            if (Test-Path $path -ErrorAction SilentlyContinue) {
+            if ((Test-Path $path -ErrorAction SilentlyContinue)) {
                 $item = [AppItem]::new()
                 $item.DisplayName      = "Teams Meeting Add-in"
                 $item.Version          = "N/A"
@@ -1400,7 +1402,7 @@ $btnScanM365.Add_Click({
 
         # Latest Teams UWP cache
         $teamsCacheRoot = Join-Path $localAppDataRoot "Packages\MSTeams_8wekyb3d8bbwe\LocalCache\Microsoft\MSTeams"
-        if (Test-Path $teamsCacheRoot -PathType Container) {
+        if ((Test-Path $teamsCacheRoot -PathType Container -ErrorAction SilentlyContinue)) {
             $item = [AppItem]::new()
             $item.DisplayName      = "Teams Cache (Hoofdmap)"
             $item.Version          = "N/A"
@@ -1412,7 +1414,7 @@ $btnScanM365.Add_Click({
         }
     }
 
-    Write-WPFStatus "M365/Teams scan voltooid - $($appList.Count) items gevonden."
+    Write-WPFStatus "✅ M365/Teams scan voltooid - $($appList.Count) items gevonden."
 
     $window.Dispatcher.Invoke([action]{ $btnRemove.IsEnabled = $true; $btnRemove.Visibility = [System.Windows.Visibility]::Visible })
     Update-DataGridWPF $appList
@@ -1422,7 +1424,7 @@ $btnScanM365.Add_Click({
 $btnScanZivver.Add_Click({
     $appList.Clear()
     
-    # Send scan start message to WPF
+    # Send scan start message to WPF status
     Write-WPFStatus "Start scan: Zivver mappen..."
     
     # Step 1: Check Zivver registry locations (COM add-in)
@@ -1434,7 +1436,7 @@ $btnScanZivver.Add_Click({
 
     foreach ($regPath in $zivverRegPaths) {
         if (Test-Path $regPath) {
-            # Do not send debug messages to console; only update WPF status
+            # Do not send debug messages to the console, only to WPF status
             Write-WPFStatus "Zivver add-in gevonden in het register op: $regPath"
             $item = [AppItem]::new()
             $item.DisplayName      = "Zivver Add-in (Registry)"
@@ -1458,7 +1460,7 @@ $btnScanZivver.Add_Click({
         [System.IO.Path]::Combine($env:APPDATA, 'Zivver\Config'),
         [System.IO.Path]::Combine($env:LOCALAPPDATA, 'Zivver\B.V.'),
 
-        # Add Program Files (x86) location for Zivver B.V.
+        # Include Program Files (x86) location for Zivver B.V.
         [System.IO.Path]::Combine('C:\Program Files (x86)', 'Zivver B.V')
     ) | Sort-Object -Unique
 
@@ -1491,7 +1493,7 @@ $btnScanZivver.Add_Click({
 
 # --- Reinstall M365/Office ---
 $btnReinstall.Add_Click({
-    Write-Host "Herinstallatie van M365 wordt gestart..."
+	Write-Host "Herinstallatie van M365 wordt gestart..."
 
     $odtFolder = "C:\ODT"
     if (-not (Test-Path $odtFolder)) { New-Item -Path $odtFolder -ItemType Directory -Force | Out-Null }
@@ -1501,8 +1503,8 @@ $btnReinstall.Add_Click({
 
     # Download ODT if not present
     if (-not (Test-Path $setupExe)) {
-        try {
-            Write-Host "Download Office Deployment Tool..."
+		try {
+			Write-Host "Download Office Deployment Tool..."
             [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
             $page = Invoke-WebRequest -Uri "https://www.microsoft.com/en-us/download/details.aspx?id=49117" -UseBasicParsing
             $link = $page.Links | Where-Object { $_.href -match "officedeploymenttool.*\.exe" } | Select-Object -First 1
@@ -1510,7 +1512,7 @@ $btnReinstall.Add_Click({
             $odtExe = Join-Path $odtFolder "OfficeDeploymentTool.exe"
             Invoke-WebRequest -Uri $link.href -OutFile $odtExe -UseBasicParsing
             Start-Process -FilePath $odtExe -ArgumentList "/quiet /extract:$odtFolder" -Wait
-        } catch {
+		} catch {
             Write-Host "Fout bij ODT download: $($_.Exception.Message)"
             return
         }
@@ -1518,7 +1520,7 @@ $btnReinstall.Add_Click({
 
     $bitness = if ([Environment]::Is64BitOperatingSystem) { "64" } else { "32" }
 
-    # Create installation XML config
+    # Create installation XML configuration
     $configFile = Join-Path $odtFolder "install365.xml"
     $xmlContent = @"
 <Configuration>
@@ -1537,13 +1539,13 @@ $btnReinstall.Add_Click({
     # Start installation
     $arguments = @("/configure", $configFile)
     Start-Process -FilePath $setupExe -ArgumentList $arguments -Wait
-    Write-Host "Herinstallatie M365 voltooid."
+    Write-Host "✅ Herinstallatie M365 voltooid."
     Write-WPFStatus "Microsoft 365 is succesvol herinstalleerd.", 100
 })
 
 # --- Full M365 removal ---
 $btnRemoveAll.Add_Click({
-    Update-Status "Verwijderen van alle M365 componenten..."
+    Update-Status "🧹 Verwijderen van alle M365 componenten..."
 
     $odtFolder = "C:\ODT"
     $logFolder = Join-Path $odtFolder "Logs"
@@ -1583,9 +1585,10 @@ $btnRemoveAll.Add_Click({
     Update-Status "Alle M365 componenten verwijderd."
 })
 
+
 # --- Extra event handlers for reinstall buttons ---
-$btnReinstallZivver.Add_Click({ Restore-Zivver })
-$btnReinstallTeamsAddin.Add_Click({ Restore-TeamsAddin })
+$btnReinstallZivver.Add_Click({ Invoke-ZivverReinstall })
+$btnReinstallTeamsAddin.Add_Click({ Invoke-TeamsAddinReinstall })
 
 
 ##############################
@@ -1594,8 +1597,3 @@ $btnReinstallTeamsAddin.Add_Click({ Restore-TeamsAddin })
 
 # --- Show Window (Triggers WPF rendering) ---
 $window.ShowDialog()
-
-
-
-
-

@@ -10,7 +10,7 @@ if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdent
         # Use $PSCommandPath to get the current script path (works in PS 5.1).
         Start-Process pwsh.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs
     } catch {
-        [System.Windows.Forms.MessageBox]::Show("Dit script heeft Administrator rechten nodig om te draaien.", "Rechten fout", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error)
+        [System.Windows.Forms.MessageBox]::Show("This script requires Administrator rights to run.", "Permission error", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error)
     }
     exit
 }
@@ -277,7 +277,7 @@ function Find-M365Item {
                 $item.DisplayName = "M365 Cache: $path"
                 $item.Version = "N/A"
                 $item.Source = $fullPath
-                $item.UninstallString = "Handmatig verwijderen"
+                $item.UninstallString = "Remove manually"
                 $item.Type = "Cache"
                 $item.IsSelected = $false
                 $appList.Add($item)
@@ -351,7 +351,7 @@ function Find-ZivverItem {
             }
             $item.Version = "N/A"
             $item.Source = $path
-            $item.UninstallString = "Handmatig verwijderen"
+            $item.UninstallString = "Remove manually"
             $item.Type = "Zivver"
             $item.IsSelected = $false
             $appList.Add($item)
@@ -579,7 +579,7 @@ function Remove-AppItems {
     }
 
     if ($itemsToRemove.Count -eq 0) {
-        Write-WPFStatus "Geen items geselecteerd voor verwijdering."
+        Write-WPFStatus "No items selected for removal."
         return
     }
 
@@ -689,9 +689,9 @@ function Remove-AppItems {
 
     # --- Final status ---
     if ($itemsRemovedSuccessfully -gt 0) {
-        Write-WPFStatus "Verwijdering voltooid. $itemsRemovedSuccessfully items succesvol verwijderd."
+        Write-WPFStatus "Removal completed. $itemsRemovedSuccessfully items were removed successfully."
     } elseif ($itemsToKeep.Count -gt 0) {
-        Write-WPFStatus "Verwijdering mislukt voor sommige items. Controleer log voor details."
+        Write-WPFStatus "Removal failed for some items. Check the log for details."
     } else {
         Write-WPFStatus "Geen items verwijderd."
     }
@@ -851,7 +851,7 @@ function Invoke-ZivverReinstall {
         Write-WPFStatus "Zivver installatie gevonden. Start stille verwijdering.", 20
         Start-Process -FilePath cmd -ArgumentList "/c $finalUninstallCommand" -Wait -WindowStyle Hidden -ErrorAction Stop
 
-        Write-WPFStatus "Verwijderingsproces voltooid. Wachten op systeem...", 25
+        Write-WPFStatus "Removal process completed. Waiting for system...", 25
         Start-Sleep -Seconds 5
     } else {
         Write-WPFStatus "Zivver installatie niet gevonden. Overslaan van de-installatie.", 25
@@ -954,13 +954,13 @@ $XAML = @"
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <TextBlock Text="M365 Installaties, Taalpakketten &amp; Componenten"
+        <TextBlock Text="M365 Installations, Language Packs &amp; Components"
                    FontSize="24" FontWeight="Bold" Foreground="White" Margin="0,0,0,20"/>
 
         <StackPanel Orientation="Horizontal" Grid.Row="1" Margin="0,0,0,10">
             <Button Name="btnScanM365" Content="🔍 Scan M365/Teams" Width="180" Margin="5" Background="#007AFF" Foreground="White"/>
             <Button Name="btnScanZivver" Content="🔍 Scan Zivver" Width="150" Margin="5" Background="#FF9500" Foreground="White"/>
-            <Button Name="btnRemove" Content="❌ Verwijder Geselecteerde" Width="200" Margin="5" Background="#FF3B30" Foreground="White" IsEnabled="False"/>
+            <Button Name="btnRemove" Content="❌ Remove Selected" Width="200" Margin="5" Background="#FF3B30" Foreground="White" IsEnabled="False"/>
         </StackPanel>
 
         <DataGrid Name="dgApps" Grid.Row="2" AutoGenerateColumns="False" CanUserAddRows="False"
@@ -992,7 +992,7 @@ $XAML = @"
                         <DataTemplate>
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                 <CheckBox x:Name="chkSelectAll" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                                <TextBlock Text="Selecteer" Foreground="White" VerticalAlignment="Center"/>
+                                <TextBlock Text="Select" Foreground="White" VerticalAlignment="Center"/>
                             </StackPanel>
                         </DataTemplate>
                     </DataGridTemplateColumn.HeaderTemplate>
@@ -1002,9 +1002,9 @@ $XAML = @"
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
-                <DataGridTextColumn Header="Naam" Binding="{Binding DisplayName}" Width="*" ElementStyle="{StaticResource TextBlockWhite}"/>
-                <DataGridTextColumn Header="Versie" Binding="{Binding Version}" Width="120" ElementStyle="{StaticResource TextBlockWhite}"/>
-                <DataGridTextColumn Header="Bron" Binding="{Binding Source}" Width="120" ElementStyle="{StaticResource TextBlockWhite}"/>
+                <DataGridTextColumn Header="Name" Binding="{Binding DisplayName}" Width="*" ElementStyle="{StaticResource TextBlockWhite}"/>
+                <DataGridTextColumn Header="Version" Binding="{Binding Version}" Width="120" ElementStyle="{StaticResource TextBlockWhite}"/>
+                <DataGridTextColumn Header="Source" Binding="{Binding Source}" Width="120" ElementStyle="{StaticResource TextBlockWhite}"/>
                 <DataGridTextColumn Header="UninstallString" Binding="{Binding UninstallString}" Width="250" ElementStyle="{StaticResource TextBlockWhite}"/>
             </DataGrid.Columns>
         </DataGrid>
@@ -1017,13 +1017,13 @@ $XAML = @"
 
         <StackPanel Orientation="Vertical" Grid.Row="5">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,5,0,5">
-                <Button Name="btnRemoveAll" Content="🧹 Verwijder M365 Compleet" Width="250" Margin="5,0" Background="#FF3B30" Foreground="White"/>
+                <Button Name="btnRemoveAll" Content="🧹 Remove M365 Completely" Width="250" Margin="5,0" Background="#FF3B30" Foreground="White"/>
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                <Button Name="btnReinstall" Content="🔄 Herinstalleer M365" Width="200" Margin="5" Background="#34C759" Foreground="White"/>
-                <Button Name="btnReinstallZivver" Content="🔄 Herinstalleer Zivver Plugin" Width="200" Margin="5" Background="#34C759" Foreground="White"/>
-                <Button Name="btnReinstallTeamsAddin" Content="🔄 Herinstalleer Teams Add-in" Width="200" Margin="5" Background="#34C759" Foreground="White"/>
+                <Button Name="btnReinstall" Content="🔄 Reinstall M365" Width="200" Margin="5" Background="#34C759" Foreground="White"/>
+                <Button Name="btnReinstallZivver" Content="🔄 Reinstall Zivver Plugin" Width="200" Margin="5" Background="#34C759" Foreground="White"/>
+                <Button Name="btnReinstallTeamsAddin" Content="🔄 Reinstall Teams Add-in" Width="200" Margin="5" Background="#34C759" Foreground="White"/>
             </StackPanel>
             
         </StackPanel>
@@ -1146,10 +1146,10 @@ $localAppDataRoot = [string]$env:LocalAppData
 
 # --- Button: Remove All M365/Teams items ---
 $btnRemoveAll.Add_Click({
-    Start-AsyncJob -JobName "Verwijdering M365 Compleet" -ScriptBlock {
+    Start-AsyncJob -JobName "Full M365 Removal" -ScriptBlock {
         param($appList)
 
-        Update-Status "Verwijderen van alle M365/Teams componenten..."
+        Update-Status "Removing all M365/Teams components..."
 
         # Stop Teams and Office processes
         $procs = "Teams","MsTeams","OUTLOOK","WINWORD","EXCEL","POWERPNT"
@@ -1234,16 +1234,16 @@ $btnRemove.Add_Click({
     $selectedItems = $appList | Where-Object { $_.IsSelected }
 
     if ($selectedItems.Count -eq 0) {
-        Write-WPFStatus "Geen items geselecteerd om te verwijderen."
+        Write-WPFStatus "No items selected for removal."
         return
     }
 
     # Start removing selected items
-    Write-WPFStatus "Verwijderen geselecteerde items..."
+    Write-WPFStatus "Removing selected items..."
 
     foreach ($item in $selectedItems) {
         try {
-            Write-WPFStatus "Verwijderen item: $($item.DisplayName)"
+            Write-WPFStatus "Removing item: $($item.DisplayName)"
 
             # Stop all related Teams processes
             if ($item.DisplayName -match "Teams") {
@@ -1274,7 +1274,7 @@ $btnRemove.Add_Click({
             }
 
             # Remove files in the selected item folder
-            Write-WPFStatus "Verwijderen van bestanden in map: $($item.Source)"
+            Write-WPFStatus "Removing files in folder: $($item.Source)"
             if (Test-Path $item.Source) {
                 try {
                     # Remove file or folder
@@ -1305,14 +1305,14 @@ $btnRemove.Add_Click({
     }
 
     # Update UI and show completion message after removal is done
-    Write-WPFStatus "Verwijderen voltooid. Alle geselecteerde items zijn succesvol verwijderd."
+    Write-WPFStatus "Removal completed. All selected items were removed successfully."
     Update-DataGridWPF -DataList $appList
 })
 
 # --- Button: Scan M365/Teams including Teams Meeting Add-in ---
 $btnScanM365.Add_Click({
     $appList.Clear()
-    Write-WPFStatus "Start scan: M365/Teams componenten..."
+    Write-WPFStatus "Starting scan: M365/Teams components..."
     Find-M365Item
 
     # --- 1. Per-machine registry scan ---
@@ -1404,7 +1404,7 @@ $btnScanM365.Add_Click({
         $teamsCacheRoot = Join-Path $localAppDataRoot "Packages\MSTeams_8wekyb3d8bbwe\LocalCache\Microsoft\MSTeams"
         if ((Test-Path $teamsCacheRoot -PathType Container -ErrorAction SilentlyContinue)) {
             $item = [AppItem]::new()
-            $item.DisplayName      = "Teams Cache (Hoofdmap)"
+            $item.DisplayName      = "Teams Cache (Main Folder)"
             $item.Version          = "N/A"
             $item.Source           = $teamsCacheRoot
             $item.UninstallString  = $teamsCacheRoot
@@ -1414,7 +1414,7 @@ $btnScanM365.Add_Click({
         }
     }
 
-    Write-WPFStatus "✅ M365/Teams scan voltooid - $($appList.Count) items gevonden."
+    Write-WPFStatus "✅ M365/Teams scan completed - $($appList.Count) items found."
 
     $window.Dispatcher.Invoke([action]{ $btnRemove.IsEnabled = $true; $btnRemove.Visibility = [System.Windows.Visibility]::Visible })
     Update-DataGridWPF $appList
@@ -1425,7 +1425,7 @@ $btnScanZivver.Add_Click({
     $appList.Clear()
     
     # Send scan start message to WPF status
-    Write-WPFStatus "Start scan: Zivver mappen..."
+    Write-WPFStatus "Starting scan: Zivver folders..."
     
     # Step 1: Check Zivver registry locations (COM add-in)
     $zivverRegPaths = @(
@@ -1442,7 +1442,7 @@ $btnScanZivver.Add_Click({
             $item.DisplayName      = "Zivver Add-in (Registry)"
             $item.Version          = "N/A"
             $item.Source           = $regPath
-            $item.UninstallString  = "Handmatig verwijderen"
+            $item.UninstallString  = "Remove manually"
             $item.Type             = "Zivver"
             $item.IsSelected       = $false
             $appList.Add($item)
@@ -1478,7 +1478,7 @@ $btnScanZivver.Add_Click({
             }
             $item.Version          = "N/A"
             $item.Source           = $path
-            $item.UninstallString  = "Handmatig verwijderen"
+            $item.UninstallString  = "Remove manually"
             $item.Type             = "Zivver"
             $item.IsSelected       = $false
             $appList.Add($item)
@@ -1486,7 +1486,7 @@ $btnScanZivver.Add_Click({
     }
 
     # Step 3: Update UI with scan completion status to WPF
-    Write-WPFStatus "Zivver scan voltooid - $($appList.Count) items gevonden."
+    Write-WPFStatus "Zivver scan completed - $($appList.Count) items found."
     $btnRemove.Dispatcher.Invoke([action]{ $btnRemove.IsEnabled = ($appList.Count -gt 0) })
     Update-DataGridWPF $appList
 })
@@ -1545,7 +1545,7 @@ $btnReinstall.Add_Click({
 
 # --- Full M365 removal ---
 $btnRemoveAll.Add_Click({
-    Update-Status "🧹 Verwijderen van alle M365 componenten..."
+    Update-Status "🧹 Removing all M365 components..."
 
     $odtFolder = "C:\ODT"
     $logFolder = Join-Path $odtFolder "Logs"

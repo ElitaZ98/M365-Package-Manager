@@ -1,5 +1,7 @@
 # M365 Package Manager
 
+![M365 Package Manager](screenshots/M365-Package-Manager.png)
+
 A complete PowerShell GUI application for managing, removing, and reinstalling Microsoft 365 (M365) applications, Office components, Teams integrations, and Zivver software on Windows computers.
 
 ## 📋 Overview
